@@ -76,6 +76,7 @@
             font-weight: bold;
             width: 100%;
             transition: background 0.2s;
+            margin-bottom: 10px;
         }
         .claim-button:disabled {
             background: #4a4f7a;
@@ -107,33 +108,36 @@
     <div class="container">
         <div class="header">Woofswap - Claim Fees</div>
         <div class="connect-section">
-            <button id="connectWalletButton">Connect Wallet</button>
-            <div id="networkStatus" class="status">Click to connect...</div>
+            <button id="connectWalletButton">连接钱包</button>
+            <div id="networkStatus" class="status">点击连接...</div>
         </div>
-        <button class="claim-button" id="claimButton" onclick="claimFees()" disabled>Claim Fees</button>
+        <button class="claim-button" id="claimButton1" onclick="claimFees(1)" disabled>领取费用 (第1部分)</button>
+        <button class="claim-button" id="claimButton2" onclick="claimFees(2)" disabled>领取费用 (第2部分)</button>
+        <button class="claim-button" id="claimButton3" onclick="claimFees(3)" disabled>领取费用 (第3部分)</button>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
     <script>
         const voterContractAddress = '0x30d9159c8c9e403A0e9597837052F70cf8eC362c';
         const feesAddresses = [
-            "0x325ba3f48503F685A0a20d221C3B43d9D9978a1F",
-            "0xF48C8a208f987d1758d9dEc6c7308e83E4C75E43",
-            "0xBc59D68001b216736f4AA0cdAc395071B33B028e",
-            "0x8Ff0aDe3A82206B2344F88d1F665a22b942Ae106",
-            "0xeA225C3B1185eFb2415073e9312DaDbbbCDa39f5",
-            "0x994A47dCe7CAb2b6F1F33BAF05Cf84Ec3791333f",
-            "0x5a6E397aEE590ae3Ec004F7b2EcAA9BCD00Fc233",
-            "0x1b5EC9527f212bD94b64Cc6B6e5CD895F6574b0F"
+            ["0x325ba3f48503F685A0a20d221C3B43d9D9978a1F", "0xF48C8a208f987d1758d9dEc6c7308e83E4C75E43", "0xBc59D68001b216736f4AA0cdAc395071B33B028e"],
+            ["0x8Ff0aDe3A82206B2344F88d1F665a22b942Ae106", "0xeA225C3B1185eFb2415073e9312DaDbbbCDa39f5", "0x994A47dCe7CAb2b6F1F33BAF05Cf84Ec3791333f"],
+            ["0x5a6E397aEE590ae3Ec004F7b2EcAA9BCD00Fc233", "0x1b5EC9527f212bD94b64Cc6B6e5CD895F6574b0F"]
         ];
         const tokensAddresses = [
-            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xD0daa7B6ff1B40d3cc6F0B2Cf7E85cB993D1c834"],
-            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0x8ed7d143Ef452316Ab1123d28Ab302dC3b80d3ce"],
-            ["0x495eea66B0f8b636D441dC6a98d8F5C3D455C4c0", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
-            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xeCe898EdCc0AF91430603175F945D8de75291c70"],
-            ["0x0b4FD6288b6d32171CC515bfFC9340026F56A358", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
-            ["0x65218A41Fb92637254B4f8c97448d3dF343A3064", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
-            ["0x7f816954BAe96fDCc79A06583446232111613C7A", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
-            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xB9Ae1d4e474CC154F48e5C2f0559Eb3A78Ad1F09"]
+            [
+                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xD0daa7B6ff1B40d3cc6F0B2Cf7E85cB993D1c834"],
+                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0x8ed7d143Ef452316Ab1123d28Ab302dC3b80d3ce"],
+                ["0x495eea66B0f8b636D441dC6a98d8F5C3D455C4c0", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"]
+            ],
+            [
+                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xeCe898EdCc0AF91430603175F945D8de75291c70"],
+                ["0x0b4FD6288b6d32171CC515bfFC9340026F56A358", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
+                ["0x65218A41Fb92637254B4f8c97448d3dF343A3064", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"]
+            ],
+            [
+                ["0x7f816954BAe96fDCc79A06583446232111613C7A", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
+                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xB9Ae1d4e474CC154F48e5C2f0559Eb3A78Ad1F09"]
+            ]
         ];
         const tokenId = '293';
 
@@ -160,45 +164,52 @@
                     await window.ethereum.request({ method: 'eth_requestAccounts' });
                     const accounts = await web3.eth.getAccounts();
                     account = accounts[0];
-                    document.getElementById('connectWalletButton').innerText = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
-                    document.getElementById('networkStatus').innerText = 'Wallet connected';
+                    document.getElementById('connectWalletButton').innerText = `已连接: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                    document.getElementById('networkStatus').innerText = '钱包已连接';
                     voterContract = new web3.eth.Contract(voterAbi, voterContractAddress);
-                    document.getElementById('claimButton').disabled = false;
+                    document.getElementById('claimButton1').disabled = false;
+                    document.getElementById('claimButton2').disabled = false;
+                    document.getElementById('claimButton3').disabled = false;
                 } catch (error) {
-                    document.getElementById('networkStatus').innerText = 'Failed to connect wallet';
-                    console.error("Wallet connection error:", error);
+                    document.getElementById('networkStatus').innerText = '连接钱包失败';
+                    console.error("钱包连接错误:", error);
                 }
             } else {
-                document.getElementById('networkStatus').innerText = 'Please install MetaMask';
+                document.getElementById('networkStatus').innerText = '请安装 MetaMask';
             }
         }
 
-        async function claimFees() {
+        async function claimFees(part) {
             const status = document.getElementById('networkStatus');
-            const claimButton = document.getElementById('claimButton');
+            const claimButton = document.getElementById(`claimButton${part}`);
 
             if (!web3 || !account) {
-                status.innerText = "Please connect wallet first.";
+                status.innerText = "请先连接钱包";
                 claimButton.disabled = false;
                 return;
             }
 
             try {
                 claimButton.disabled = true;
-                status.innerText = "Initiating claim...";
+                status.innerText = `正在领取第${part}部分费用...`;
 
-                const tx = await voterContract.methods.claimFees(feesAddresses, tokensAddresses, tokenId).send({
+                const partIndex = part - 1;
+                const tx = await voterContract.methods.claimFees(
+                    feesAddresses[partIndex],
+                    tokensAddresses[partIndex],
+                    tokenId
+                ).send({
                     from: account,
-                    gas: web3.utils.toHex(1000000)
+                    gas: web3.utils.toHex(500000)
                 });
 
-                status.innerText = `Fees claimed! Tx Hash: ${tx.transactionHash}`;
+                status.innerText = `第${part}部分费用领取成功！交易哈希: ${tx.transactionHash}`;
             } catch (error) {
                 if (error.code === 4001) {
-                    status.innerText = "Transaction canceled by user.";
+                    status.innerText = "用户取消了交易";
                 } else {
-                    status.innerText = `Failed to claim fees: ${error.message}`;
-                    console.error("Claim fees error:", error);
+                    status.innerText = `领取第${part}部分费用失败: ${error.message}`;
+                    console.error(`领取第${part}部分费用错误:`, error);
                 }
             } finally {
                 claimButton.disabled = false;
