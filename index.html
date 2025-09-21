@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woofswap - Claim Fees</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff9100;
+            --secondary-color: #ff6f61;
+            --gradient-bg: linear-gradient(180deg, #1e1e2f 0%, #2a2a3d 100%);
+            --card-bg: #2c2f48;
+            --input-bg: #373b5c;
+            --text-color: #ffffff;
+            --border-radius: 15px;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--gradient-bg);
+            color: var(--text-color);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-radius: var(--border-radius);
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(90deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .connect-section button {
+            padding: 12px;
+            background: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.2s;
+            margin-bottom: 10px;
+        }
+        .connect-section button:hover { background: #e68a00; }
+        .status {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: var(--primary-color);
+            text-align: center;
+        }
+        .claim-button {
+            padding: 15px;
+            background: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .claim-button:disabled {
+            background: #4a4f7a;
+            cursor: not-allowed;
+        }
+        .claim-button:hover:not(:disabled) { background: #e68a00; }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 5px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .header { font-size: 1.1em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Woofswap - Claim Fees</div>
+        <div class="connect-section">
+            <button id="connectWalletButton">Connect Wallet</button>
+            <div id="networkStatus" class="status">Click to connect...</div>
+        </div>
+        <button class="claim-button" id="claimButton" onclick="claimFees()" disabled>Claim Fees</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
+    <script>
+        const voterContractAddress = '0x30d9159c8c9e403A0e9597837052F70cf8eC362c';
+        const feesAddresses = [
+            "0x325ba3f48503F685A0a20d221C3B43d9D9978a1F",
+            "0xF48C8a208f987d1758d9dEc6c7308e83E4C75E43",
+            "0xBc59D68001b216736f4AA0cdAc395071B33B028e",
+            "0x8Ff0aDe3A82206B2344F88d1F665a22b942Ae106",
+            "0xeA225C3B1185eFb2415073e9312DaDbbbCDa39f5",
+            "0x994A47dCe7CAb2b6F1F33BAF05Cf84Ec3791333f",
+            "0x5a6E397aEE590ae3Ec004F7b2EcAA9BCD00Fc233",
+            "0x1b5EC9527f212bD94b64Cc6B6e5CD895F6574b0F"
+        ];
+        const tokensAddresses = [
+            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xD0daa7B6ff1B40d3cc6F0B2Cf7E85cB993D1c834"],
+            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0x8ed7d143Ef452316Ab1123d28Ab302dC3b80d3ce"],
+            ["0x495eea66B0f8b636D441dC6a98d8F5C3D455C4c0", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
+            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xeCe898EdCc0AF91430603175F945D8de75291c70"],
+            ["0x0b4FD6288b6d32171CC515bfFC9340026F56A358", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
+            ["0x65218A41Fb92637254B4f8c97448d3dF343A3064", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
+            ["0x7f816954BAe96fDCc79A06583446232111613C7A", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
+            ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xB9Ae1d4e474CC154F48e5C2f0559Eb3A78Ad1F09"]
+        ];
+        const tokenId = '293';
+
+        const voterAbi = [
+            {
+                "inputs": [
+                    {"internalType": "address[]", "name": "_fees", "type": "address[]"},
+                    {"internalType": "address[][]", "name": "_tokens", "type": "address[][]"},
+                    {"internalType": "uint256", "name": "_tokenId", "type": "uint256"}
+                ],
+                "name": "claimFees",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "", "type": "address"}
+                ],
+                "name": "_ve",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let web3, account, voterContract;
+
+        async function initializeWeb3() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    account = accounts[0];
+                    document.getElementById('connectWalletButton').innerText = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                    document.getElementById('networkStatus').innerText = 'Wallet connected';
+                    document.getElementById('claimButton').disabled = false;
+                    voterContract = new web3.eth.Contract(voterAbi, voterContractAddress);
+                    await checkOwnership();
+                } catch (error) {
+                    document.getElementById('networkStatus').innerText = 'Failed to connect wallet';
+                    console.error("Wallet connection error:", error);
+                }
+            } else {
+                document.getElementById('networkStatus').innerText = 'Please install MetaMask';
+            }
+        }
+
+        async function checkOwnership() {
+            try {
+                const veAddress = await voterContract.methods._ve().call();
+                const veContract = new web3.eth.Contract([
+                    {
+                        "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                        "name": "ownerOf",
+                        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [{"internalType": "address", "name": "", "type": "address"}, {"internalType": "uint256", "name": "", "type": "uint256"}],
+                        "name": "isApprovedOrOwner",
+                        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }
+                ], veAddress);
+                const isApprovedOrOwner = await veContract.methods.isApprovedOrOwner(account, tokenId).call();
+                if (!isApprovedOrOwner) {
+                    document.getElementById('networkStatus').innerText = 'You are not approved or owner of tokenId 293';
+                    document.getElementById('claimButton').disabled = true;
+                }
+            } catch (error) {
+                document.getElementById('networkStatus').innerText = 'Error checking token ownership';
+                document.getElementById('claimButton').disabled = true;
+                console.error("Ownership check error:", error);
+            }
+        }
+
+        async function claimFees() {
+            const status = document.getElementById('networkStatus');
+            const claimButton = document.getElementById('claimButton');
+
+            if (!web3 || !account) {
+                status.innerText = "Please connect wallet first.";
+                claimButton.disabled = false;
+                return;
+            }
+
+            try {
+                claimButton.disabled = true;
+                status.innerText = "Initiating claim...";
+
+                const tx = await voterContract.methods.claimFees(feesAddresses, tokensAddresses, tokenId).send({
+                    from: account,
+                    gas: web3.utils.toHex(1000000)
+                });
+
+                status.innerText = `Fees claimed! Tx Hash: ${tx.transactionHash}`;
+            } catch (error) {
+                if (error.code === 4001) {
+                    status.innerText = "Transaction canceled by user.";
+                } else {
+                    status.innerText = "Failed to claim fees.";
+                    console.error("Claim fees error:", error);
+                }
+            } finally {
+                claimButton.disabled = false;
+            }
+        }
+
+        document.getElementById('connectWalletButton').addEventListener('click', initializeWeb3);
+    </script>
+</body>
+</html>
