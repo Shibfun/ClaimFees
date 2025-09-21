@@ -148,15 +148,6 @@
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "", "type": "address"}
-                ],
-                "name": "_ve",
-                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-                "stateMutability": "view",
-                "type": "function"
             }
         ];
 
@@ -171,46 +162,14 @@
                     account = accounts[0];
                     document.getElementById('connectWalletButton').innerText = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
                     document.getElementById('networkStatus').innerText = 'Wallet connected';
-                    document.getElementById('claimButton').disabled = false;
                     voterContract = new web3.eth.Contract(voterAbi, voterContractAddress);
-                    await checkOwnership();
+                    document.getElementById('claimButton').disabled = false;
                 } catch (error) {
                     document.getElementById('networkStatus').innerText = 'Failed to connect wallet';
                     console.error("Wallet connection error:", error);
                 }
             } else {
                 document.getElementById('networkStatus').innerText = 'Please install MetaMask';
-            }
-        }
-
-        async function checkOwnership() {
-            try {
-                const veAddress = await voterContract.methods._ve().call();
-                const veContract = new web3.eth.Contract([
-                    {
-                        "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                        "name": "ownerOf",
-                        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [{"internalType": "address", "name": "", "type": "address"}, {"internalType": "uint256", "name": "", "type": "uint256"}],
-                        "name": "isApprovedOrOwner",
-                        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    }
-                ], veAddress);
-                const isApprovedOrOwner = await veContract.methods.isApprovedOrOwner(account, tokenId).call();
-                if (!isApprovedOrOwner) {
-                    document.getElementById('networkStatus').innerText = 'You are not approved or owner of tokenId 293';
-                    document.getElementById('claimButton').disabled = true;
-                }
-            } catch (error) {
-                document.getElementById('networkStatus').innerText = 'Error checking token ownership';
-                document.getElementById('claimButton').disabled = true;
-                console.error("Ownership check error:", error);
             }
         }
 
@@ -238,7 +197,7 @@
                 if (error.code === 4001) {
                     status.innerText = "Transaction canceled by user.";
                 } else {
-                    status.innerText = "Failed to claim fees.";
+                    status.innerText = `Failed to claim fees: ${error.message}`;
                     console.error("Claim fees error:", error);
                 }
             } finally {
