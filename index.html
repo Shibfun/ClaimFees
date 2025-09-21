@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Woofswap - Claim Fees</title>
+    <title>Woofswap - 查询和领取费用</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -32,7 +32,7 @@
         }
         .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 600px;
             background: var(--card-bg);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border-radius: var(--border-radius);
@@ -83,6 +83,21 @@
             cursor: not-allowed;
         }
         .claim-button:hover:not(:disabled) { background: #e68a00; }
+        .fees-display {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+        .fees-display ul {
+            list-style: none;
+            padding: 0;
+        }
+        .fees-display li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: var(--input-bg);
+            border-radius: 10px;
+        }
         .spinner {
             display: inline-block;
             width: 16px;
@@ -106,10 +121,13 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">Woofswap - Claim Fees</div>
+        <div class="header">Woofswap - 查询和领取费用</div>
         <div class="connect-section">
             <button id="connectWalletButton">连接钱包</button>
             <div id="networkStatus" class="status">点击连接...</div>
+        </div>
+        <div class="fees-display" id="feesDisplay">
+            <ul id="feesList"></ul>
         </div>
         <button class="claim-button" id="claimButton1" onclick="claimFees(1)" disabled>领取费用 (第1部分)</button>
         <button class="claim-button" id="claimButton2" onclick="claimFees(2)" disabled>领取费用 (第2部分)</button>
@@ -118,28 +136,11 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
     <script>
         const voterContractAddress = '0x30d9159c8c9e403A0e9597837052F70cf8eC362c';
-        const feesAddresses = [
-            ["0x325ba3f48503F685A0a20d221C3B43d9D9978a1F", "0xF48C8a208f987d1758d9dEc6c7308e83E4C75E43", "0xBc59D68001b216736f4AA0cdAc395071B33B028e"],
-            ["0x8Ff0aDe3A82206B2344F88d1F665a22b942Ae106", "0xeA225C3B1185eFb2415073e9312DaDbbbCDa39f5", "0x994A47dCe7CAb2b6F1F33BAF05Cf84Ec3791333f"],
-            ["0x5a6E397aEE590ae3Ec004F7b2EcAA9BCD00Fc233", "0x1b5EC9527f212bD94b64Cc6B6e5CD895F6574b0F"]
-        ];
-        const tokensAddresses = [
-            [
-                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xD0daa7B6ff1B40d3cc6F0B2Cf7E85cB993D1c834"],
-                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0x8ed7d143Ef452316Ab1123d28Ab302dC3b80d3ce"],
-                ["0x495eea66B0f8b636D441dC6a98d8F5C3D455C4c0", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"]
-            ],
-            [
-                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xeCe898EdCc0AF91430603175F945D8de75291c70"],
-                ["0x0b4FD6288b6d32171CC515bfFC9340026F56A358", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
-                ["0x65218A41Fb92637254B4f8c97448d3dF343A3064", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"]
-            ],
-            [
-                ["0x7f816954BAe96fDCc79A06583446232111613C7A", "0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd"],
-                ["0x839FdB6cc98342B428E074C1573ADF6D48CA3bFd", "0xB9Ae1d4e474CC154F48e5C2f0559Eb3A78Ad1F09"]
-            ]
-        ];
         const tokenId = '293';
+
+        // 动态存储查询到的可领取费用
+        let dynamicFees = [];
+        let dynamicTokens = [];
 
         const voterAbi = [
             {
@@ -151,6 +152,85 @@
                 "name": "claimFees",
                 "outputs": [],
                 "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "length",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "name": "pools",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "name": "gauges",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "name": "internal_bribes",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "name": "external_bribes",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        const bribeAbi = [
+            {
+                "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "name": "rewardTokens",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "rewardsListLength",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "token", "type": "address"},
+                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
+                ],
+                "name": "earned",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        const erc20Abi = [
+            {
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "decimals",
+                "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+                "stateMutability": "view",
                 "type": "function"
             }
         ];
@@ -165,17 +245,126 @@
                     const accounts = await web3.eth.getAccounts();
                     account = accounts[0];
                     document.getElementById('connectWalletButton').innerText = `已连接: ${account.slice(0, 6)}...${account.slice(-4)}`;
-                    document.getElementById('networkStatus').innerText = '钱包已连接';
+                    document.getElementById('networkStatus').innerText = '钱包已连接，正在查询可领取费用...';
                     voterContract = new web3.eth.Contract(voterAbi, voterContractAddress);
-                    document.getElementById('claimButton1').disabled = false;
-                    document.getElementById('claimButton2').disabled = false;
-                    document.getElementById('claimButton3').disabled = false;
+                    await queryAllFees();
                 } catch (error) {
                     document.getElementById('networkStatus').innerText = '连接钱包失败';
                     console.error("钱包连接错误:", error);
                 }
             } else {
                 document.getElementById('networkStatus').innerText = '请安装 MetaMask';
+            }
+        }
+
+        async function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function queryAllFees() {
+            const feesList = document.getElementById('feesList');
+            feesList.innerHTML = '<li>正在查询可领取费用，请稍候...</li>';
+            dynamicFees = [];
+            dynamicTokens = [];
+
+            try {
+                const poolCount = await voterContract.methods.length().call();
+                const maxPools = Math.min(poolCount, 50); // 限制最多查询 50 个池子
+                const feesData = [];
+
+                for (let i = 0; i < maxPools; i++) {
+                    await delay(100); // 每次查询延迟 100ms 避免速率限制
+                    const pool = await voterContract.methods.pools(i).call();
+                    const gauge = await voterContract.methods.gauges(pool).call();
+                    if (gauge === '0x0000000000000000000000000000000000000000') continue;
+
+                    const internalBribe = await voterContract.methods.internal_bribes(gauge).call();
+                    const externalBribe = await voterContract.methods.external_bribes(gauge).call();
+                    const bribeAddresses = [
+                        { address: internalBribe, type: '内部贿赂' },
+                        { address: externalBribe, type: '外部贿赂' }
+                    ];
+
+                    for (const bribe of bribeAddresses) {
+                        if (bribe.address === '0x0000000000000000000000000000000000000000') continue;
+                        const bribeContract = new web3.eth.Contract(bribeAbi, bribe.address);
+                        let rewardCount;
+                        try {
+                            rewardCount = await bribeContract.methods.rewardsListLength().call();
+                        } catch (error) {
+                            console.warn(`无法获取奖励代币数量 for bribe ${bribe.address}: ${error.message}`);
+                            continue;
+                        }
+
+                        const tokens = [];
+                        for (let j = 0; j < rewardCount; j++) {
+                            await delay(100); // 每次查询代币延迟
+                            let token;
+                            try {
+                                token = await bribeContract.methods.rewardTokens(j).call();
+                            } catch (error) {
+                                console.warn(`无法获取奖励代币 ${j} for bribe ${bribe.address}: ${error.message}`);
+                                continue;
+                            }
+
+                            let earned;
+                            try {
+                                earned = await bribeContract.methods.earned(token, tokenId).call();
+                            } catch (error) {
+                                console.warn(`无法查询 earned for token ${token} in bribe ${bribe.address}: ${error.message}`);
+                                continue;
+                            }
+
+                            if (earned === '0') continue;
+
+                            let symbol = token;
+                            let decimals = 18;
+                            try {
+                                const tokenContract = new web3.eth.Contract(erc20Abi, token);
+                                symbol = await tokenContract.methods.symbol().call();
+                                decimals = await tokenContract.methods.decimals().call();
+                            } catch (error) {
+                                console.warn(`无法获取代币信息 for token ${token}: ${error.message}`);
+                            }
+
+                            const amount = web3.utils.fromWei(earned, decimals === 18 ? 'ether' : `1e${decimals}`);
+                            feesData.push({
+                                bribeAddress: bribe.address,
+                                bribeType: bribe.type,
+                                tokenAddress: token,
+                                symbol: symbol,
+                                amount: parseFloat(amount).toFixed(6)
+                            });
+                            tokens.push(token);
+                        }
+
+                        if (tokens.length > 0) {
+                            dynamicFees.push(bribe.address);
+                            dynamicTokens.push(tokens);
+                        }
+                    }
+                }
+
+                if (feesData.length === 0) {
+                    feesList.innerHTML = '<li>没有可领取的费用</li>';
+                    document.getElementById('claimButton1').disabled = true;
+                    document.getElementById('claimButton2').disabled = true;
+                    document.getElementById('claimButton3').disabled = true;
+                } else {
+                    feesList.innerHTML = feesData.map(data => 
+                        `<li>${data.bribeType} (地址: ${data.bribeAddress.slice(0, 6)}...${data.bribeAddress.slice(-4)}): ${data.amount} ${data.symbol} (代币地址: ${data.tokenAddress.slice(0, 6)}...${data.tokenAddress.slice(-4)})</li>`
+                    ).join('');
+                    // 动态分配领取按钮
+                    const partSize = Math.ceil(dynamicFees.length / 3);
+                    document.getElementById('claimButton1').disabled = dynamicFees.length === 0;
+                    document.getElementById('claimButton2').disabled = dynamicFees.length <= partSize;
+                    document.getElementById('claimButton3').disabled = dynamicFees.length <= partSize * 2;
+                    document.getElementById('networkStatus').innerText = '查询完成，可领取费用已显示';
+                }
+            } catch (error) {
+                document.getElementById('networkStatus').innerText = '查询费用失败';
+                console.error("查询费用错误:", error);
+                feesList.innerHTML = '<li>查询费用失败，请重试</li>';
             }
         }
 
@@ -189,21 +378,39 @@
                 return;
             }
 
+            if (dynamicFees.length === 0) {
+                status.innerText = "没有可领取的费用";
+                claimButton.disabled = true;
+                return;
+            }
+
             try {
                 claimButton.disabled = true;
                 status.innerText = `正在领取第${part}部分费用...`;
 
-                const partIndex = part - 1;
+                const partSize = Math.ceil(dynamicFees.length / 3);
+                const startIndex = (part - 1) * partSize;
+                const endIndex = Math.min(startIndex + partSize, dynamicFees.length);
+                const partFees = dynamicFees.slice(startIndex, endIndex);
+                const partTokens = dynamicTokens.slice(startIndex, endIndex);
+
+                if (partFees.length === 0) {
+                    status.innerText = `第${part}部分没有可领取的费用`;
+                    claimButton.disabled = true;
+                    return;
+                }
+
                 const tx = await voterContract.methods.claimFees(
-                    feesAddresses[partIndex],
-                    tokensAddresses[partIndex],
+                    partFees,
+                    partTokens,
                     tokenId
                 ).send({
                     from: account,
-                    gas: web3.utils.toHex(500000)
+                    gas: web3.utils.toHex(500000 * partFees.length) // 动态调整 gas
                 });
 
                 status.innerText = `第${part}部分费用领取成功！交易哈希: ${tx.transactionHash}`;
+                await queryAllFees(); // 领取后重新查询
             } catch (error) {
                 if (error.code === 4001) {
                     status.innerText = "用户取消了交易";
